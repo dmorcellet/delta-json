@@ -128,7 +128,7 @@ public class JSONObject {
     /**
      * The map where the JSONObject's properties are kept.
      */
-    private final Map map;
+    private final Map<String,Object> _map;
 
 
     /**
@@ -144,7 +144,7 @@ public class JSONObject {
      * Construct an empty JSONObject.
      */
     public JSONObject() {
-        this.map = new HashMap();
+        this._map = new HashMap<String,Object>();
     }
 
 
@@ -154,8 +154,6 @@ public class JSONObject {
      * Missing keys are ignored.
      * @param jo A JSONObject.
      * @param names An array of strings.
-     * @throws JSONException
-     * @exception JSONException If a value is a non-finite number or if a name is duplicated.
      */
     public JSONObject(JSONObject jo, String[] names) {
         this();
@@ -163,6 +161,7 @@ public class JSONObject {
             try {
                 this.putOnce(names[i], jo.opt(names[i]));
             } catch (Exception ignore) {
+              // Ignored
             }
         }
     }
@@ -230,17 +229,16 @@ public class JSONObject {
      *
      * @param map A map object that can be used to initialize the contents of
      *  the JSONObject.
-     * @throws JSONException
      */
-    public JSONObject(Map map) {
-        this.map = new HashMap();
+    public JSONObject(Map<String,Object> map) {
+        _map = new HashMap<String,Object>();
         if (map != null) {
-            Iterator i = map.entrySet().iterator();
+            Iterator<Map.Entry<String,Object>> i = map.entrySet().iterator();
             while (i.hasNext()) {
-                Map.Entry e = (Map.Entry)i.next();
+                Map.Entry<String,Object> e = i.next();
                 Object value = e.getValue();
                 if (value != null) {
-                    this.map.put(e.getKey(), wrap(value));
+                    _map.put(e.getKey(), wrap(value));
                 }
             }
         }
@@ -285,12 +283,13 @@ public class JSONObject {
      */
     public JSONObject(Object object, String names[]) {
         this();
-        Class c = object.getClass();
+        Class<?> c = object.getClass();
         for (int i = 0; i < names.length; i += 1) {
             String name = names[i];
             try {
                 this.putOpt(name, c.getField(name).get(object));
             } catch (Exception ignore) {
+              // Ignored
             }
         }
     }
@@ -323,16 +322,15 @@ public class JSONObject {
 
 // Iterate through the keys in the bundle.
 
-        Enumeration keys = bundle.getKeys();
+        Enumeration<String> keys = bundle.getKeys();
         while (keys.hasMoreElements()) {
-            Object key = keys.nextElement();
-            if (key instanceof String) {
+            String key = keys.nextElement();
 
 // Go through the path, ensuring that there is a nested JSONObject for each
 // segment except the last. Add the value using the last segment's name into
 // the deepest nested JSONObject.
 
-                String[] path = ((String)key).split("\\.");
+                String[] path = key.split("\\.");
                 int last = path.length - 1;
                 JSONObject target = this;
                 for (int i = 0; i < last; i += 1) {
@@ -344,8 +342,7 @@ public class JSONObject {
                     }
                     target = nextTarget;
                 }
-                target.put(path[last], bundle.getString((String)key));
-            }
+                target.put(path[last], bundle.getString(key));
         }
     }
 
@@ -590,11 +587,11 @@ public class JSONObject {
         if (length == 0) {
             return null;
         }
-        Iterator iterator = jo.keys();
+        Iterator<String> iterator = jo.keys();
         String[] names = new String[length];
         int i = 0;
         while (iterator.hasNext()) {
-            names[i] = (String)iterator.next();
+            names[i] = iterator.next();
             i += 1;
         }
         return names;
@@ -610,7 +607,7 @@ public class JSONObject {
         if (object == null) {
             return null;
         }
-        Class klass = object.getClass();
+        Class<?> klass = object.getClass();
         Field[] fields = klass.getFields();
         int length = fields.length;
         if (length == 0) {
@@ -647,7 +644,7 @@ public class JSONObject {
      * @return      true if the key exists in the JSONObject.
      */
     public boolean has(String key) {
-        return this.map.containsKey(key);
+        return this._map.containsKey(key);
     }
 
 
@@ -696,8 +693,8 @@ public class JSONObject {
      *
      * @return An iterator of the keys.
      */
-    public Iterator keys() {
-        return this.map.keySet().iterator();
+    public Iterator<String> keys() {
+        return this._map.keySet().iterator();
     }
 
 
@@ -707,7 +704,7 @@ public class JSONObject {
      * @return The number of keys in the JSONObject.
      */
     public int length() {
-        return this.map.size();
+        return this._map.size();
     }
 
 
@@ -761,7 +758,7 @@ public class JSONObject {
      * @return      An object which is the value, or null if there is no value.
      */
     public Object opt(String key) {
-        return key == null ? null : this.map.get(key);
+        return key == null ? null : this._map.get(key);
     }
 
 
@@ -988,7 +985,7 @@ public class JSONObject {
 
                         Object result = method.invoke(bean, (Object[])null);
                         if (result != null) {
-                            this.map.put(key, wrap(result));
+                            this._map.put(key, wrap(result));
                         }
                     }
                 }
@@ -1099,7 +1096,7 @@ public class JSONObject {
         }
         if (value != null) {
             testValidity(value);
-            this.map.put(key, value);
+            this._map.put(key, value);
         } else {
             this.remove(key);
         }
@@ -1217,7 +1214,7 @@ public class JSONObject {
      * or null if there was no value.
      */
     public Object remove(String key) {
-        return this.map.remove(key);
+        return this._map.remove(key);
     }
 
     /**
@@ -1328,7 +1325,7 @@ public class JSONObject {
      */
     public String toString() {
         try {
-            Iterator     keys = this.keys();
+            Iterator<String>     keys = keys();
             StringBuffer sb = new StringBuffer("{");
 
             while (keys.hasNext()) {
@@ -1338,7 +1335,7 @@ public class JSONObject {
                 Object o = keys.next();
                 sb.append(quote(o.toString()));
                 sb.append(':');
-                sb.append(valueToString(this.map.get(o)));
+                sb.append(valueToString(this._map.get(o)));
             }
             sb.append('}');
             return sb.toString();
@@ -1384,7 +1381,7 @@ public class JSONObject {
         if (length == 0) {
             return "{}";
         }
-        Iterator     keys = this.keys();
+        Iterator<String>     keys = this.keys();
         int          newindent = indent + indentFactor;
         Object       object;
         StringBuffer sb = new StringBuffer("{");
@@ -1392,7 +1389,7 @@ public class JSONObject {
             object = keys.next();
             sb.append(quote(object.toString()));
             sb.append(": ");
-            sb.append(valueToString(this.map.get(object), indentFactor,
+            sb.append(valueToString(this._map.get(object), indentFactor,
                     indent));
         } else {
             while (keys.hasNext()) {
@@ -1407,7 +1404,7 @@ public class JSONObject {
                 }
                 sb.append(quote(object.toString()));
                 sb.append(": ");
-                sb.append(valueToString(this.map.get(object), indentFactor,
+                sb.append(valueToString(this._map.get(object), indentFactor,
                         newindent));
             }
             if (sb.length() > 1) {
@@ -1611,7 +1608,7 @@ public class JSONObject {
                 Object key = keys.next();
                 writer.write(quote(key.toString()));
                 writer.write(':');
-                Object value = this.map.get(key);
+                Object value = this._map.get(key);
                 if (value instanceof JSONObject) {
                     ((JSONObject)value).write(writer);
                 } else if (value instanceof JSONArray) {
